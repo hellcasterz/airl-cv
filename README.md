@@ -1,111 +1,83 @@
-# airl-cv
-# airl-cv
-This repository contains the official implementation for the AIRL-CV project, focusing on patch-based visual classification.
+# AIRL-CV
+This repository contains the implementation of ViT on CIFAR 10 dataset. I used WandB to track accuracy and loss during training process.
 
-How to Run in Google Colab
-You can easily run this project in a Google Colab environment.
+Final Accuracy: 
+<img width="1177" height="346" alt="image" src="https://github.com/user-attachments/assets/0c0195e8-1cad-4cee-be5e-88016c830dd5" />
 
- <!-- Replace with your actual Colab notebook link -->
+## Vision Transformer on CIFAR 10 dataset
 
-Steps:
+<!-- Replace with your actual Colab notebook link -->
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1R_7xdv9hryOd1eeMQZFFb2EVEbaYM4si#scrollTo=tKJmfP9uIunk)
 
-Clone the repository:
+### Steps:
 
-!git clone [https://github.com/YOUR_USERNAME/airl-cv.git](https://github.com/YOUR_USERNAME/airl-cv.git)
-%cd airl-cv
+1. **Clone the repository**
+   ```bash
+   !git clone https://github.com/YOUR_USERNAME/airl-cv.git
+   %cd airl-cv
 
-Install dependencies:
-
-!pip install -r requirements.txt
-
+   
 Run training/evaluation:
-Open the main notebook (main.ipynb or similar) and execute the cells to download data, configure the model, and start the training and evaluation process.
+Open the main notebook (q1.ipynb) and execute the cells to download data, configure the model, and start the training and evaluation process.
 
 Best Model Configuration
 Our best-performing model was achieved using the following configuration. This setup provides a strong baseline for patch-based classification tasks.
 
-model:
-  name: ViT-Base
-  patch_size: 16
-  embed_dim: 768
-  depth: 12
-  num_heads: 12
-  mlp_ratio: 4.0
+2. **Best Performing Model**
+   ```bash
+   name: ViT
+   patch_size: 4
+   embed_dim: 256
+   num_heads: 8
+   block_size: 8
 
-data:
-  dataset: CIFAR-100 # or your dataset
-  image_size: 224
-  augmentation:
-    - RandomResizedCrop(224)
-    - RandomHorizontalFlip()
-    - RandAugment(2, 9)
-    - ToTensor()
-    - Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-  
-training:
-  optimizer: AdamW
-  learning_rate: 1e-4
-  weight_decay: 0.05
-  batch_size: 128
-  epochs: 100
-  scheduler: CosineAnnealingLR
-  warmup_epochs: 5
-  patch_strategy: non-overlapping # or overlapping
+3. **Data**
+   ```bash
+   dataset: CIFAR-10
+   image_size: 32
+   augmentation:
+      - RandomCrop(IMAGE_SIZE, padding=4),
+      - RandomHorizontalFlip(),
+      - ColorJitter(brightness=0.25, contrast=0.25, saturation=0.25),
+      - RandomAffine(degrees=25, translate=(0.1, 0.1)),
+      - ToTensor(),
+      - Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+      - RandomErasing(p=0.5, scale=(0.05, 0.25), ratio=(0.3, 3.3), value=0)
+ 
+  4. **Training:**
+     ```bash
+     optimizer: AdamW
+     learning_rate: 5e-2
+     weight_decay: 0.05
+     batch_size: 128
+     epochs: 80
+     scheduler: CosineAnnealingLR
+     patch_strategy: non-overlapping
+<img width="1170" height="342" alt="image" src="https://github.com/user-attachments/assets/87025157-7346-4223-b6d8-667b2adb9fd5" />
 
-Results
-The following table summarizes the overall classification accuracy on the test set for different model configurations.
 
-Model Variant
+   ## Analysis
 
-Overall Test Accuracy
+- **Patch Size Choices**
+  - Larger patch sizes risk losing important fine-grained information.  
+  - Since CIFAR images are low resolution, large patches were not feasible.  
+  - Smaller patch sizes capture finer details but increase computation.  
+  - Due to local implementation and time constraints, a **patch size of 4** was chosen as the best balance.
 
-ResNet50 Baseline
+- **Augmentation Effects**
+  - Data augmentation was **critical** for good generalization.  
+  - A combination of geometric and color-space augmentations gave the best results.  
+  - **ColorJitter** and **RandomAffine** were most effective.  
+  - Without augmentation, accuracy peaked at only **53% after 60 epochs**.
 
-78.5%
+- **Optimizer**
+  - **AdamW** outperformed standard Adam due to better weight decay handling.
 
-ViT-Small (Non-overlapping)
+- **Learning Rate Schedule**
+  - **CosineAnnealingLR** with 5–10 warmup epochs stabilized training and improved convergence.  
+  - As epochs were in the range of 40–80, **MultiStepLR** produced less smooth curves.  
+  - However, **71% accuracy** was still achieved with MultiStepLR.
 
-81.2%
 
-ViT-Base (Non-overlapping)
-
-84.7%
-
-ViT-Base (Overlapping)
-
-85.3%
-
-Analysis & Ablation Studies
-We conducted several experiments to understand the impact of different design choices.
-
-Patch Size Choices
-The choice of patch size presents a fundamental trade-off.
-
-Smaller Patches (e.g., 8x8): Capture finer details and local textures but increase the sequence length, leading to higher computational costs.
-
-Larger Patches (e.g., 32x32): Capture more global context within each patch but risk losing important fine-grained information.
-For our primary dataset, a 16x16 patch size provided the best balance between performance and computational efficiency.
-
-Depth vs. Width Trade-offs
-We explored different model architectures by varying the depth (number of transformer layers) and width (embedding dimension).
-
-Deeper, Narrower Models: Showed strong performance but were slower to train. They are effective at learning complex feature hierarchies.
-
-Wider, Shallower Models: Trained faster and offered competitive results, suggesting that a rich feature representation in early layers is highly beneficial. The ViT-Base architecture (Depth: 12, Width: 768) ultimately outperformed wider but shallower variants.
-
-Augmentation Effects
-Data augmentation was critical for achieving good generalization. We found that a combination of geometric and color-space augmentations yielded the best results. RandAugment was particularly effective, preventing the model from overfitting to superficial features and encouraging it to learn more robust representations. Disabling augmentation resulted in a significant drop in accuracy (~8-10%).
-
-Optimizer and Schedule Variants
-We tested several optimizers and learning rate schedules.
-
-Optimizer: AdamW consistently outperformed SGD and standard Adam due to its improved weight decay implementation, which is crucial for training transformer-based models.
-
-LR Schedule: A CosineAnnealingLR schedule with a brief linear warmup period (5-10 epochs) was essential. It allowed the model to stabilize in the early stages of training before gradually annealing the learning rate, leading to better convergence and final performance.
-
-Overlapping vs. Non-overlapping Patches
-We experimented with both non-overlapping patches and overlapping patches (with a stride smaller than the patch size).
-
-Non-overlapping: This is the standard, computationally efficient approach.
-
-Overlapping: This method slightly improved performance (~0.5-0.6%) by providing smoother transitions between patches and ensuring features at patch borders are processed multiple times in different local contexts. However, this comes at the cost of increased computational complexity during the patching phase. For our final best model, this trade-off was deemed worthwhile.
+ # Grounding SAM
+ I have read both SAM and SAM 2 papers available and also read about CLIP, DINO, and Grounding DINO, and tried to work with them, but I was not able to run implement them in the gviven time constraints.
