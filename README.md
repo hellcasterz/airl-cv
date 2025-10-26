@@ -78,6 +78,3 @@ Our best-performing model was achieved using the following configuration. This s
   - As epochs were in the range of 40–80, **MultiStepLR** produced less smooth curves.  
   - However, **71% accuracy** was still achieved with MultiStepLR.
 
-
- # Grounding SAM
- I have read both SAM and SAM 2 papers available and also read about CLIP, DINO, and Grounding DINO, and tried to work with them, but I was not able to run implement them in the gviven time constraints.
